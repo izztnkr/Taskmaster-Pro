@@ -33,6 +33,7 @@ var loadTasks = function() {
 
   // loop over object properties
   $.each(tasks, function(list, arr) {
+    console.log(list, arr);
     // then loop over sub-array
     arr.forEach(function(task) {
       createTask(task.text, task.date, list);
@@ -44,7 +45,68 @@ var saveTasks = function() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 
 };
+// enable draggable/sortable feature on list-group elements
+$(".card .list-group").sortable({
+  connectWith: $(".card .list-group"),
+  scroll: false,
+  tolerance: "pointer",
+  helper: "clone",
+  activate: function(event) {
+    console.log("activate", this);
+  },
+  deactivate: function(event) {
+    console.log("deactivate", this);
+  },
+  over: function(event) {
+    console.log("over", event.target);
+  },
+  out: function(event) {
+    console.log("out", event.target);
+  },
+  update: function() {
+    var tempArr = [];
 
+    $(this)
+      .children()
+      .each(function() {
+        tempArr.push({
+          text: $(this)
+            .find("p")
+            .text()
+            .trim(),
+          date: $(this)
+            .find("span")
+            .text()
+            .trim()
+        });
+      });    
+
+    var arrName = $(this)
+      .attr("id")
+      .replace("list-","");
+    
+    tasks[arrName] = tempArr;
+    saveTasks();
+  },
+  stop: function(event){
+    $(this).removeClass("dropover");
+  }
+});
+
+$("#trash").droppable({
+  accept: ".card .list-group-item",
+  tolerance: "touch",
+  drop: function(event, ui) {
+    ui.draggable.remove();
+  },
+
+  over: function(event, ui) {
+    console.log(ui);
+  },
+  out: function(event, ui) {
+    console.log("out");
+  }
+});
 
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
@@ -79,8 +141,9 @@ $("#task-form-modal .btn-primary").click(function() {
     saveTasks();
   }
 });
+
 $(".list-group").on("click", "p", function() {
-  var text=$(this)
+  var text = $(this)
     .text()
     .trim();
   
@@ -95,8 +158,7 @@ $(".list-group").on("click", "p", function() {
 $(".list-group").on("blur", "textarea", function() {
   // get the textarea's current value/text
   var text = $(this)
-  .val()
-  .trim();
+  .val();
 
   // get the parent ul's id attribute
   var status = $(this)
@@ -133,26 +195,22 @@ $(".list-group").on("click", "span", function() {
     .attr("type", "text")
     .addClass("form-control")
     .val(date);
-
   // swap out elements
   $(this).replaceWith(dateInput);
-
   // automatically focus on new element
   dateInput.trigger("focus");
+});
 
-  // value of due date was changed
-$(".list-group").on("blur", "input[type='text']", function() {
+// value of due date was changed
+$(".list-group").on("change", "input[type='text']", function() {
   // get current text
-  var date = $(this)
-    .val()
-    .trim();
+  var date = $(this).val();
 
   // get the parent ul's id attribute
   var status = $(this)
     .closest(".list-group")
     .attr("id")
     .replace("list-", "");
-
   // get the task's position in the list of other li elements
   var index = $(this)
     .closest(".list-group-item")
@@ -166,10 +224,7 @@ $(".list-group").on("blur", "input[type='text']", function() {
   var taskSpan = $("<span>")
     .addClass("badge badge-primary badge-pill")
     .text(date);
-
-  // replace input with span element
-  $(this).replaceWith(taskSpan);
-});
+    $(this).replaceWith(taskSpan);
 });
 
 // remove all tasks
@@ -178,10 +233,9 @@ $("#remove-tasks").on("click", function() {
     tasks[key].length = 0;
     $("#list-" + key).empty();
   }
+  console.log(tasks);
   saveTasks();
 });
 
-// load tasks for the first time
-loadTasks();
-
+loadtasks();
 
