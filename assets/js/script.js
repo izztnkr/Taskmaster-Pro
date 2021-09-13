@@ -43,10 +43,70 @@ var loadTasks = function() {
 
 var saveTasks = function() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
+
 };
+// enable draggable/sortable feature on list-group elements
+$(".card .list-group").sortable({
+  connectWith: $(".card .list-group"),
+  scroll: false,
+  tolerance: "pointer",
+  helper: "clone",
+  activate: function(event) {
+    console.log("activate", this);
+  },
+  deactivate: function(event) {
+    console.log("deactivate", this);
+  },
+  over: function(event) {
+    console.log("over", event.target);
+  },
+  out: function(event) {
+    console.log("out", event.target);
+  },
+  update: function() {
+    var tempArr = [];
 
+    $(this)
+      .children()
+      .each(function() {
+        tempArr.push({
+          text: $(this)
+            .find("p")
+            .text()
+            .trim(),
+          date: $(this)
+            .find("span")
+            .text()
+            .trim()
+        });
+      });    
 
+    var arrName = $(this)
+      .attr("id")
+      .replace("list-","");
+    
+    tasks[arrName] = tempArr;
+    saveTasks();
+  },
+  stop: function(event){
+    $(this).removeClass("dropover");
+  }
+});
 
+$("#trash").droppable({
+  accept: ".card .list-group-item",
+  tolerance: "touch",
+  drop: function(event, ui) {
+    ui.draggable.remove();
+  },
+
+  over: function(event, ui) {
+    console.log(ui);
+  },
+  out: function(event, ui) {
+    console.log("out");
+  }
+});
 
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
@@ -82,16 +142,100 @@ $("#task-form-modal .btn-primary").click(function() {
   }
 });
 
+$(".list-group").on("click", "p", function() {
+  var text = $(this)
+    .text()
+    .trim();
+  
+  var textInput = $("<textarea>")
+  .addClass("form-control")
+  .val(text);
+  $(this).replaceWith(textInput);
+
+  textInput.trigger(focus);
+});
+
+$(".list-group").on("blur", "textarea", function() {
+  // get the textarea's current value/text
+  var text = $(this)
+  .val();
+
+  // get the parent ul's id attribute
+  var status = $(this)
+    .closest(".list-group")
+    .attr("id")
+    .replace("list-", "");
+
+  // get the task's position in the list of other li elements
+  var index = $(this)
+    .closest(".list-group-item")
+    .index();
+
+  tasks[status][index].text = text;
+    saveTasks();
+  // recreate p element
+  var taskP = $("<p>")
+    .addClass("m-1")
+    .text(text);
+
+  // replace textarea with p element
+  $(this).replaceWith(taskP);
+});
+
+
+// due date was clicked
+$(".list-group").on("click", "span", function() {
+  // get current text
+  var date = $(this)
+    .text()
+    .trim();
+
+  // create new input element
+  var dateInput = $("<input>")
+    .attr("type", "text")
+    .addClass("form-control")
+    .val(date);
+  // swap out elements
+  $(this).replaceWith(dateInput);
+  // automatically focus on new element
+  dateInput.trigger("focus");
+});
+
+// value of due date was changed
+$(".list-group").on("change", "input[type='text']", function() {
+  // get current text
+  var date = $(this).val();
+
+  // get the parent ul's id attribute
+  var status = $(this)
+    .closest(".list-group")
+    .attr("id")
+    .replace("list-", "");
+  // get the task's position in the list of other li elements
+  var index = $(this)
+    .closest(".list-group-item")
+    .index();
+
+  // update task in array and re-save to localstorage
+  tasks[status][index].date = date;
+  saveTasks();
+
+  // recreate span element with bootstrap classes
+  var taskSpan = $("<span>")
+    .addClass("badge badge-primary badge-pill")
+    .text(date);
+    $(this).replaceWith(taskSpan);
+});
+
 // remove all tasks
 $("#remove-tasks").on("click", function() {
   for (var key in tasks) {
     tasks[key].length = 0;
     $("#list-" + key).empty();
   }
+  console.log(tasks);
   saveTasks();
 });
 
-// load tasks for the first time
-loadTasks();
-
+loadtasks();
 
